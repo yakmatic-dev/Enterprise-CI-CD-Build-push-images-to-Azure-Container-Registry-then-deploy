@@ -1,4 +1,4 @@
-name: Build, Push Docker & Deploy - PetClinic.
+name: Build, Push Docker & Deploy - PetClinic
 
 on:
   push:
@@ -14,22 +14,22 @@ jobs:
     outputs:
       image_tag: ${{ steps.set_tag.outputs.image_tag }}
     steps:
-      #  Checkout code
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Setup Java
+      # 2️⃣ Setup Java
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # Build JAR with Maven
+      # 3️⃣ Build JAR with Maven
       - name: Build with Maven
         run: mvn clean package -DskipTests
 
-      #  Generate Docker image tag
+      # 4️⃣ Generate Docker image tag
       - name: Set Docker image tag
         id: set_tag
         run: |
@@ -38,28 +38,31 @@ jobs:
           echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
-      # Azure login via Service Principal
+      # 5️⃣ Azure Login using Service Principal
       - name: Azure Login
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
+          auth-type: service-principal
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Login to ACR
+      # 6️⃣ Login to ACR
       - name: Login to ACR
         run: az acr login --name ${{ secrets.ACR_NAME }}
 
-      # Build and push Docker image to ACR
+      # 7️⃣ Build and push Docker image
       - name: Build and push Docker image
         run: |
           docker build -t ${{ secrets.ACR_NAME }}/spring-petclinic:${{ env.IMAGE_TAG }} .
           docker push ${{ secrets.ACR_NAME }}/spring-petclinic:${{ env.IMAGE_TAG }}
 
-          # Also tag and push as 'latest' (optional)
-          docker tag ${{ secrets.ACR_NAME }}/spring-petclinic:${{ env.IMAGE_TAG }} \
-                     ${{ secrets.ACR_NAME }}/spring-petclinic:latest
-          docker push ${{ secrets.ACR_NAME }}/spring-petclinic:latest
+          # Tag as latest if on main branch
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            docker tag ${{ secrets.ACR_NAME }}/spring-petclinic:${{ env.IMAGE_TAG }} \
+                       ${{ secrets.ACR_NAME }}/spring-petclinic:latest
+            docker push ${{ secrets.ACR_NAME }}/spring-petclinic:latest
+          fi
 
   deploy:
     runs-on: ubuntu-latest
@@ -78,15 +81,14 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            # Login to ACR via Service Principal (optional, can use ACR token)
-            echo "Logging in to ACR"
+            # Login to ACR (optional if you use pull credentials)
             az acr login --name ${{ secrets.ACR_NAME }}
 
-            # Pull latest image from build job
+            # Pull the image built in the workflow
             IMAGE_TAG="${{ needs.build.outputs.image_tag }}"
             docker pull ${{ secrets.ACR_NAME }}/spring-petclinic:${IMAGE_TAG}
 
-            # Stop old container if running
+            # Stop old container if exists
             docker rm -f spring-petclinic || true
 
             # Run new container
