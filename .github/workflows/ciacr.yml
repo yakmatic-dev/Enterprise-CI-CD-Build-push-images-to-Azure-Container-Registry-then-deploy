@@ -1,4 +1,4 @@
-name: Build, Push Docker & Deploy - PetClinic
+name: Build, Push Docker & Deploy - PetClinic.
 
 on:
   push:
