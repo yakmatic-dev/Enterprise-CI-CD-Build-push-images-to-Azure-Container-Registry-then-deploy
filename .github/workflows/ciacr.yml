@@ -56,7 +56,7 @@ jobs:
 
       # 7️⃣ Login to ACR (must use NAME, not login server)
       - name: Login to ACR
-        run: az acr login --name ${{ secrets.ACR_NAME }}
+        run: az acr login --name clinicapp
       
       # 8️⃣ Build and push Docker image
       - name: Build and push Docker image
