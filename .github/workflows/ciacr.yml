@@ -1,4 +1,4 @@
-name: Build, Push Docker & Deploy - PetClinic
+name: Build, Push Docker & Deploy - PetClinic.
 
 on:
   push:
@@ -48,27 +48,41 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
-      # 6️⃣ Login to ACR
+      # 6️⃣ Set subscription and login to ACR
+      - name: Set Azure subscription
+        run: az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
       - name: Login to ACR
         run: az acr login --name ${{ secrets.ACR_NAME }}
       
-      # 7️⃣ Build and push Docker image
+      # 7️⃣ Get ACR login server
+      - name: Get ACR login server
+        id: acr_info
+        run: |
+          ACR_LOGIN_SERVER=$(az acr show --name ${{ secrets.ACR_NAME }} --query loginServer -o tsv)
+          echo "ACR_LOGIN_SERVER=${ACR_LOGIN_SERVER}" >> $GITHUB_ENV
+          echo "login_server=${ACR_LOGIN_SERVER}" >> $GITHUB_OUTPUT
+      
+      # 8️⃣ Build and push Docker image
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/spring-petclinic:${{ env.IMAGE_TAG }} .
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/spring-petclinic:${{ env.IMAGE_TAG }}
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/spring-petclinic:${{ env.IMAGE_TAG }} .
+          docker push ${{ env.ACR_LOGIN_SERVER }}/spring-petclinic:${{ env.IMAGE_TAG }}
           
           # Tag as latest if on main branch
           if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            docker tag ${{ secrets.ACR_NAME }}.azurecr.io/spring-petclinic:${{ env.IMAGE_TAG }} \
-                       ${{ secrets.ACR_NAME }}.azurecr.io/spring-petclinic:latest
-            docker push ${{ secrets.ACR_NAME }}.azurecr.io/spring-petclinic:latest
+            docker tag ${{ env.ACR_LOGIN_SERVER }}/spring-petclinic:${{ env.IMAGE_TAG }} \
+                       ${{ env.ACR_LOGIN_SERVER }}/spring-petclinic:latest
+            docker push ${{ env.ACR_LOGIN_SERVER }}/spring-petclinic:latest
           fi
       
       # 8️⃣ Logout from Azure
       - name: Azure Logout
         if: always()
         run: az logout
+    
+    outputs:
+      acr_login_server: ${{ steps.acr_info.outputs.login_server }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -83,7 +97,7 @@ jobs:
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
         env:
-          ACR_NAME: ${{ secrets.ACR_NAME }}
+          ACR_LOGIN_SERVER: ${{ needs.build.outputs.acr_login_server }}
           ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
           ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
@@ -92,13 +106,13 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: ACR_NAME,ACR_USERNAME,ACR_PASSWORD,IMAGE_TAG
+          envs: ACR_LOGIN_SERVER,ACR_USERNAME,ACR_PASSWORD,IMAGE_TAG
           script: |
             echo "🔐 Logging into Azure Container Registry..."
-            echo "$ACR_PASSWORD" | docker login $ACR_NAME.azurecr.io --username $ACR_USERNAME --password-stdin
+            echo "$ACR_PASSWORD" | docker login $ACR_LOGIN_SERVER --username $ACR_USERNAME --password-stdin
             
-            echo "📥 Pulling new image: $ACR_NAME.azurecr.io/spring-petclinic:$IMAGE_TAG"
-            docker pull $ACR_NAME.azurecr.io/spring-petclinic:$IMAGE_TAG
+            echo "📥 Pulling new image: $ACR_LOGIN_SERVER/spring-petclinic:$IMAGE_TAG"
+            docker pull $ACR_LOGIN_SERVER/spring-petclinic:$IMAGE_TAG
             
             echo "🛑 Stopping old container..."
             docker stop spring-petclinic 2>/dev/null || true
@@ -110,7 +124,7 @@ jobs:
               --restart unless-stopped \
               -p 8080:8080 \
               -e JAVA_OPTS="-Xmx512m -Xms256m" \
-              $ACR_NAME.azurecr.io/spring-petclinic:$IMAGE_TAG
+              $ACR_LOGIN_SERVER/spring-petclinic:$IMAGE_TAG
             
             echo "⏳ Waiting for application to start..."
             sleep 10
@@ -119,7 +133,7 @@ jobs:
             docker ps --filter name=spring-petclinic
             
             echo "🧹 Cleaning up old images (keeping last 3)..."
-            docker images $ACR_NAME.azurecr.io/spring-petclinic --format "{{.ID}} {{.CreatedAt}}" | \
+            docker images $ACR_LOGIN_SERVER/spring-petclinic --format "{{.ID}} {{.CreatedAt}}" | \
               sort -k2 -r | tail -n +4 | awk '{print $1}' | xargs -r docker rmi 2>/dev/null || true
             
             echo "🎉 Deployment completed successfully!"
