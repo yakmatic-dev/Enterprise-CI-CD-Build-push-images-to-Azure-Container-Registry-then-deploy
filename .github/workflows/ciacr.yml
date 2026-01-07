@@ -1,4 +1,4 @@
-name: Build, Push Docker & Deploy - PetClinic.
+name: Build, Push Docker & Deploy - PetClinic
 
 on:
   push:
@@ -48,22 +48,34 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
-      # 6️⃣ Set subscription and login to ACR
+      # 6️⃣ Set subscription and get ACR details
       - name: Set Azure subscription
         run: az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
-      - name: Login to ACR
-        run: az acr login --name ${{ secrets.ACR_NAME }}
-      
-      # 7️⃣ Get ACR login server
-      - name: Get ACR login server
+      - name: Get ACR login server and login
         id: acr_info
         run: |
-          ACR_LOGIN_SERVER=$(az acr show --name ${{ secrets.ACR_NAME }} --query loginServer -o tsv)
+          # Get the full ACR login server URL
+          ACR_LOGIN_SERVER=$(az acr list --query "[?name=='${{ secrets.ACR_NAME }}'].loginServer" -o tsv)
+          
+          if [ -z "$ACR_LOGIN_SERVER" ]; then
+            echo "ERROR: ACR '${{ secrets.ACR_NAME }}' not found"
+            exit 1
+          fi
+          
           echo "ACR_LOGIN_SERVER=${ACR_LOGIN_SERVER}" >> $GITHUB_ENV
           echo "login_server=${ACR_LOGIN_SERVER}" >> $GITHUB_OUTPUT
+          echo "✅ Found ACR login server: ${ACR_LOGIN_SERVER}"
+          
+          # Get ACR credentials and login with Docker
+          ACR_USERNAME=$(az acr credential show --name ${{ secrets.ACR_NAME }} --query username -o tsv)
+          ACR_PASSWORD=$(az acr credential show --name ${{ secrets.ACR_NAME }} --query passwords[0].value -o tsv)
+          
+          echo "🔐 Logging into Docker registry..."
+          echo "${ACR_PASSWORD}" | docker login ${ACR_LOGIN_SERVER} --username ${ACR_USERNAME} --password-stdin
+          echo "✅ Successfully logged into ACR"
       
-      # 8️⃣ Build and push Docker image
+      # 7️⃣ Build and push Docker image
       - name: Build and push Docker image
         run: |
           docker build -t ${{ env.ACR_LOGIN_SERVER }}/spring-petclinic:${{ env.IMAGE_TAG }} .
@@ -81,8 +93,8 @@ jobs:
         if: always()
         run: az logout
     
-    # outputs:
-    #   acr_login_server: ${{ steps.acr_info.outputs.login_server }}
+    outputs:
+      acr_login_server: ${{ steps.acr_info.outputs.login_server }}
 
   deploy:
     runs-on: ubuntu-latest
