@@ -3,7 +3,7 @@ name: Build and Push Docker Image to Azure Container Registry.
 on:
   push:
     branches:
-      - test
+      - main
 
 permissions:
   id-token: write        # REQUIRED for OIDC
