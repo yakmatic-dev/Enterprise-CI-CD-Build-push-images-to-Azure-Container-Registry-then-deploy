@@ -41,8 +41,7 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            # ${{ secrets.ACR_LOGIN_SERVER }}/my-image-name:latest
-            ${{ secrets.ACR_LOGIN_SERVER }}/my-image:${{ github.run_number }}
-            ${{ secrets.ACR_LOGIN_SERVER }}/my-image-name:${{ github.sha }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/petclinic:${{ github.run_number }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/petclinic:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
