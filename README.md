@@ -325,5 +325,5 @@ for project delivery contact : yakubiliyas12@gmail.com
 
 ---
 
-**Maintained by:** [Your Team/Organization]  
+**Maintained by:** [Yakub Ilyas]  
 **Last Updated:** January 2026
