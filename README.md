@@ -472,7 +472,6 @@ Monitor the application logs to ensure it's running correctly:
 # View logs (last 100 lines)
 docker logs f2e7
 
-<img width="1557" height="753" alt="image" src="https://github.com/user-attachments/assets/805271b8-e5b4-43d3-8703-6e81ac70113a" />
 
 # Follow logs in real-time (Ctrl+C to exit)
 docker logs f2e7 -f
@@ -480,6 +479,7 @@ docker logs f2e7 -f
 # Or use container name
 docker logs petclinic -f
 ```
+<img width="1557" height="753" alt="image" src="https://github.com/user-attachments/assets/805271b8-e5b4-43d3-8703-6e81ac70113a" />
 
 #### 8. Test Application
 
@@ -488,6 +488,8 @@ Access the application:
 ```bash
 # Test from the server
 curl http://localhost:8080
+
+<img width="1354" height="751" alt="image" src="https://github.com/user-attachments/assets/10ee089a-643d-400d-8082-f22e71482c50" />
 
 # Check application health endpoint (if available)
 curl http://localhost:8080/actuator/health
