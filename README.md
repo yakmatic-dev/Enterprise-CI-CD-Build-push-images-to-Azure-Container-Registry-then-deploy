@@ -60,6 +60,7 @@ on:
 
 **Purpose:** Displays information about the Buildx builder instance for debugging and verification purposes.
 
+
 **Use Case:** Helpful for troubleshooting build issues or verifying the builder configuration.
 
 ### 4. Login to Azure Container Registry
@@ -107,6 +108,9 @@ on:
   - `petclinic:COMMIT_SHA` - Full Git commit SHA (e.g., `petclinic:abc123def456...`)
 - **cache-from:** `type=gha` - Pulls cache from GitHub Actions cache to speed up builds
 - **cache-to:** `type=gha,mode=max` - Saves all build layers to GitHub Actions cache for maximum cache efficiency
+
+  <img width="1900" height="646" alt="image" src="https://github.com/user-attachments/assets/f8ce5bb2-a600-4d8e-8896-bbfcce734c15" />
+
 
 ## Prerequisites
 
@@ -156,16 +160,12 @@ az ad sp create-for-rbac --name "github-actions-acr" \
 
 Use the output `appId` as `ACR_USERNAME` and `password` as `ACR_PASSWORD`.
 
+<img width="1408" height="696" alt="image" src="https://github.com/user-attachments/assets/dd471942-91d6-488f-b2f2-4184dbde3191" />
+
+
 ### 3. Dockerfile
 
-Ensure you have a `Dockerfile` in the repository root. Example:
-
-```dockerfile
-FROM openjdk:17-jdk-slim
-WORKDIR /app
-COPY target/*.jar app.jar
-ENTRYPOINT ["java", "-jar", "app.jar"]
-```
+Ensure you have a `Dockerfile` in the repository root. 
 
 ## Image Tagging Strategy
 
@@ -375,6 +375,7 @@ Authenticate with your Azure account:
 ```bash
 az login
 ```
+<img width="1550" height="123" alt="image" src="https://github.com/user-attachments/assets/a0880937-7c5e-4b81-b042-2fd224a6c153" />
 
 This will open a browser window for authentication. Follow the prompts to sign in.
 
@@ -461,6 +462,7 @@ docker ps
 CONTAINER ID   IMAGE                                                    STATUS         PORTS                    NAMES
 f2e7a1b3c4d5   petclinic1-f0fcc4a0emg4bcay.azurecr.io/petclinic:32     Up 2 minutes   0.0.0.0:8080->8080/tcp   petclinic
 ```
+<img width="1558" height="744" alt="image" src="https://github.com/user-attachments/assets/679b71bf-0d65-4f15-b64b-675b2c085f67" />
 
 #### 7. View Application Logs
 
@@ -469,6 +471,8 @@ Monitor the application logs to ensure it's running correctly:
 ```bash
 # View logs (last 100 lines)
 docker logs f2e7
+
+<img width="1557" height="753" alt="image" src="https://github.com/user-attachments/assets/805271b8-e5b4-43d3-8703-6e81ac70113a" />
 
 # Follow logs in real-time (Ctrl+C to exit)
 docker logs f2e7 -f
@@ -747,20 +751,6 @@ docker run -d \
 # Check health status
 docker inspect --format='{{.State.Health.Status}}' petclinic
 ```
-
-## Additional Resources
-
-- [GitHub Actions Documentation](https://docs.github.com/actions)
-- [Azure Container Registry Documentation](https://docs.microsoft.com/azure/container-registry/)
-- [Docker Build Push Action](https://github.com/docker/build-push-action)
-- [Docker Buildx Documentation](https://docs.docker.com/buildx/working-with-buildx/)
-- [Azure CLI Documentation](https://docs.microsoft.com/cli/azure/)
-- [Docker Run Reference](https://docs.docker.com/engine/reference/run/)
-
-## License
-
-Customize this section based on your project's license.
-
 ---
 
 **Maintained by:** [Yakub Ilyas]  
