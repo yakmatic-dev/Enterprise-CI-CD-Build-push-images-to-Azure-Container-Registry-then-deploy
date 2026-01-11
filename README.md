@@ -1,5 +1,4 @@
-# Enterprise-CI-CD-Build-push-images-to-Azure-Container-Registry-then-deploy
-# GitHub Actions Workflow: Build and Push Docker Image to Azure Container Registry
+# GitHub Actions Workflow: Build and Push Docker Image to Azure Container Registry then-deploy
 
 ## Overview
 
